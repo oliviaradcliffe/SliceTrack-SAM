@@ -1,7 +1,22 @@
 # SliceTrack-SAM
 An adaptation of the Segment Anything foundation model with novel prompting strategies providing 3D awareness for prostate segmentation on rotational micro-ultrasound scans of the prostate.
 
-Coming soon...
+## Methodology
+![SliceTrack-SAM Methodology](./docs/sliceTrack-sam_arch_prompt.png)
+
+## Dataset
+The dataset used to validate our method is the MicroSegNet data: Micro ultrasound prostate images. The data splits can be found in ./data. 
+
+## Results
+#### Our results can be replicated using the following statements.
+**Train**
+```
+python finetune_sam.py -save_path "./work_dir/SliceTrackSam" -saved_model_name "SliceTrackSam" -backbone "sam" -batch_size 32 -num_epochs 100 -patience 10 -img_size 256 -mask_size 64 --use_float_prompt --use_prev_mask -random_prev_mask_prob 0.6 -augment True -h_flip_prob 0.5 -optimizer "adamw" -wd 0.01
+```
+**Test**
+```
+python inference_samPrev.py -chkpt "work_dir/SliceTrackSam/SliceTrackSam.pth" -backbone "sam" -save_path "work_dir/SliceTrackSam/pred" -img_size 256 -mask_size 64 -useFloatPrompt True
+```
 
 ## Installation
 Create a virtual environment `conda create -n sliceTrackSAM python=3.10 -y` and activate it `conda activate sliceTrackSAM`
@@ -136,22 +151,3 @@ The -backbone can be altered to train a different model (aka "medsam").
 ```
 python inference_samPrev.py -chkpt "work_dir/sam_backbone_256/sam_backbone_256.pth" -backbone "sam" -save_path "work_dir/sam_backbone_256/pred" -img_size 256 -mask_size 64
 ```
-
-
-## Methodology
-![Previous Prompt Methodology](./docs/previousMaskPrompt_method.png)
-
-## Dataset
-The dataset used to validate our method is the MicroSegNet data: Micro ultrasound prostate images. The data splits can be found in ./data. 
-
-## Results
-#### Our results can be replicated using the following statements.
-**Train**
-```
-python finetune_sam.py -save_path "./work_dir/SliceTrackSam" -saved_model_name "SliceTrackSam" -backbone "sam" -batch_size 32 -num_epochs 100 -patience 10 -img_size 256 -mask_size 64 --use_float_prompt --use_prev_mask -random_prev_mask_prob 0.6 -augment True -h_flip_prob 0.5 -optimizer "adamw" -wd 0.01
-```
-**Test**
-```
-python inference_samPrev.py -chkpt "work_dir/SliceTrackSam/SliceTrackSam.pth" -backbone "sam" -save_path "work_dir/SliceTrackSam/pred" -img_size 256 -mask_size 64 -useFloatPrompt True
-```
-
