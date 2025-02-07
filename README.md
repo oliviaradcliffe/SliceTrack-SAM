@@ -5,7 +5,7 @@ An adaptation of the Segment Anything foundation model with novel prompting stra
 ![SliceTrack-SAM Methodology](./docs/sliceTrack-sam_arch_prompt.png)
 
 ## Dataset
-The dataset used to validate our method is the MicroSegNet data: Micro ultrasound prostate images. The data splits can be found in ./data. 
+The dataset used to validate our method is the [MicroSegNet](https://github.com/mirthAI/MicroSegNet) data: Micro ultrasound prostate images which can be found [here](https://zenodo.org/records/10475293). The data splits can be found in ./data. 
 
 ## Results
 #### Our results can be replicated using the following statements.
