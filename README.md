@@ -149,5 +149,5 @@ The -backbone can be altered to train a different model (aka "medsam").
 
 ## Inference
 ```
-python inference_samPrev.py -chkpt "work_dir/sam_backbone_256/sam_backbone_256.pth" -backbone "sam" -save_path "work_dir/sam_backbone_256/pred" -img_size 256 -mask_size 64
+python inference_sam.py -chkpt "work_dir/sam_backbone_256/sam_backbone_256.pth" -backbone "sam" -save_path "work_dir/sam_backbone_256/pred" -img_size 256 -mask_size 64
 ```
