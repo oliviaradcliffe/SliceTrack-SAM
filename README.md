@@ -5,7 +5,7 @@ An adaptation of the Segment Anything foundation model with novel prompting stra
 ![SliceTrack-SAM Methodology](./docs/sliceTrack-sam_arch_prompt.png)
 
 ## Dataset
-The dataset used to validate our method is the MicroSegNet data: Micro ultrasound prostate images. The data splits can be found in ./data. 
+The dataset used to validate our method is the [MicroSegNet](https://github.com/mirthAI/MicroSegNet) data: Micro ultrasound prostate images which can be found [here](https://zenodo.org/records/10475293). The data splits can be found in ./data. 
 
 ## Results
 #### Our results can be replicated using the following statements.
@@ -59,7 +59,7 @@ python finetune_sam.py -save_path "./work_dir/sam_backbone_256" -saved_model_nam
 
 **To train the SAM or MedSAM backbone WITH both prompts (SliceTrack-SAM)**
 ```
-python finetune_sam.py -save_path "./work_dir/sam_backbone_aug_w_flip_float_prev_adamw_wd" -saved_model_name "sam_backbone_aug_w_flip_float_prev_adamw_wd" -backbone "sam" -batch_size 32 -num_epochs 100 -patience 10 -img_size 256 -mask_size 64 --use_float_prompt --use_prev_mask -random_prev_mask_prob 0.6 -augment True -h_flip_prob 0.5 -optimizer "adamw" -wd 0.01
+python finetune_sam.py -save_path "./work_dir/sliceTrack_SAM" -saved_model_name "sliceTrack_SAM" -backbone "sam" -batch_size 32 -num_epochs 100 -patience 10 -img_size 256 -mask_size 64 --use_float_prompt --use_prev_mask -random_prev_mask_prob 0.6 -augment True -h_flip_prob 0.5 -optimizer "adamw" -wd 0.01
 
 ```
 
@@ -149,5 +149,5 @@ The -backbone can be altered to train a different model (aka "medsam").
 
 ## Inference
 ```
-python inference_samPrev.py -chkpt "work_dir/sam_backbone_256/sam_backbone_256.pth" -backbone "sam" -save_path "work_dir/sam_backbone_256/pred" -img_size 256 -mask_size 64
+python inference_sam.py -chkpt "work_dir/sam_backbone_256/sam_backbone_256.pth" -backbone "sam" -save_path "work_dir/sam_backbone_256/pred" -img_size 256 -mask_size 64
 ```
