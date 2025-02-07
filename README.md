@@ -59,7 +59,7 @@ python finetune_sam.py -save_path "./work_dir/sam_backbone_256" -saved_model_nam
 
 **To train the SAM or MedSAM backbone WITH both prompts (SliceTrack-SAM)**
 ```
-python finetune_sam.py -save_path "./work_dir/sam_backbone_aug_w_flip_float_prev_adamw_wd" -saved_model_name "sam_backbone_aug_w_flip_float_prev_adamw_wd" -backbone "sam" -batch_size 32 -num_epochs 100 -patience 10 -img_size 256 -mask_size 64 --use_float_prompt --use_prev_mask -random_prev_mask_prob 0.6 -augment True -h_flip_prob 0.5 -optimizer "adamw" -wd 0.01
+python finetune_sam.py -save_path "./work_dir/sliceTrack_SAM" -saved_model_name "sliceTrack_SAM" -backbone "sam" -batch_size 32 -num_epochs 100 -patience 10 -img_size 256 -mask_size 64 --use_float_prompt --use_prev_mask -random_prev_mask_prob 0.6 -augment True -h_flip_prob 0.5 -optimizer "adamw" -wd 0.01
 
 ```
 
