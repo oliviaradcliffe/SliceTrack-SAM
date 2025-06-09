@@ -26,8 +26,8 @@ Install [Pytorch 2.0](https://pytorch.org/get-started/locally/)
 **Clone the repository (or fork and clone fork)**:
 
 ```
-git clone https://github.com/yourusername/prostate-seg.git
-cd prostate-seg
+git clone https://github.com/yourusername/SliceTrack-SAM.git
+cd SliceTrack-SAM
 ```
 Download the [SAM model checkpoint](https://github.com/facebookresearch/segment-anything?tab=readme-ov-file#model-checkpoints) or [MedSAM model checkpoint](https://drive.google.com/drive/folders/1ETWmi4AiniJeWOt6HAsYgTjYv_fkgzoN?usp=drive_link) and place it at `./chkpt`
 
