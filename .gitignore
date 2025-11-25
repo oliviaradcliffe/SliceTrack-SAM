@@ -1,0 +1,6 @@
+/chkpt/
+/data/
+*.pyc
+__pycache__/
+/wandb/
+/work_dir/
