@@ -15,7 +15,7 @@ python finetune_sam.py -save_path "./work_dir/SliceTrackSam" -saved_model_name "
 ```
 **Test**
 ```
-python inference_samPrev.py -chkpt "work_dir/SliceTrackSam/SliceTrackSam.pth" -backbone "sam" -save_path "work_dir/SliceTrackSam/pred" -img_size 256 -mask_size 64 -useFloatPrompt True
+python inference_sam.py -chkpt "work_dir/SliceTrackSam/SliceTrackSam.pth" -backbone "sam" -save_path "work_dir/SliceTrackSam/pred" -img_size 256 -mask_size 64 -useFloatPrompt True
 ```
 
 ## Installation
@@ -26,8 +26,8 @@ Install [Pytorch 2.0](https://pytorch.org/get-started/locally/)
 **Clone the repository (or fork and clone fork)**:
 
 ```
-git clone https://github.com/yourusername/prostate-seg.git
-cd prostate-seg
+git clone https://github.com/yourusername/SliceTrack-SAM.git
+cd SliceTrack-SAM
 ```
 Download the [SAM model checkpoint](https://github.com/facebookresearch/segment-anything?tab=readme-ov-file#model-checkpoints) or [MedSAM model checkpoint](https://drive.google.com/drive/folders/1ETWmi4AiniJeWOt6HAsYgTjYv_fkgzoN?usp=drive_link) and place it at `./chkpt`
 
@@ -59,7 +59,7 @@ python finetune_sam.py -save_path "./work_dir/sam_backbone_256" -saved_model_nam
 
 **To train the SAM or MedSAM backbone WITH both prompts (SliceTrack-SAM)**
 ```
-python finetune_sam.py -save_path "./work_dir/sliceTrack_SAM" -saved_model_name "sliceTrack_SAM" -backbone "sam" -batch_size 32 -num_epochs 100 -patience 10 -img_size 256 -mask_size 64 --use_float_prompt --use_prev_mask -random_prev_mask_prob 0.6 -augment True -h_flip_prob 0.5 -optimizer "adamw" -wd 0.01
+python finetune_sam.py -save_path "./work_dir/sliceTrackSAM" -saved_model_name "sliceTrack_SAM" -backbone "sam" -batch_size 32 -num_epochs 100 -patience 10 -img_size 256 -mask_size 64 --use_float_prompt --use_prev_mask -random_prev_mask_prob 0.6 -augment True -h_flip_prob 0.5 -optimizer "adamw" -wd 0.01
 
 ```
 
