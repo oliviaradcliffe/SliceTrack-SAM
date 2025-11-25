@@ -103,6 +103,11 @@ parser.add_argument(
     help="use multiple images as input",
 )
 parser.add_argument(
+    "--use_video_embedding",
+    action="store_true",
+    help="use video embedding as additional prompt",
+)
+parser.add_argument(
     "-optimizer",
     type=str,
     default="adam",
@@ -329,7 +334,7 @@ def main():
         lrs = []
         for i,param in enumerate(optimizer.param_groups):
             lrs.append(param["lr"])
-        #     wandb.log({f"learning_rate {i}": param["lr"]})
+            wandb.log({f"learning_rate {i}": param["lr"]})
              
 
         # make saved model directory if not exists
@@ -344,7 +349,7 @@ def main():
             torch.save(medsam_model.state_dict(), join(args.save_path, f"{args.saved_model_name}_best_val_dice.pth"))
 
         print(f"Epoch {epoch + 1}/{args.num_epochs}, Learning rate(s) {lrs}, Train Loss: {train_loss:.4f}, Val Loss: {val_loss:.4f}, Val Dice: {val_dice:.4f}, Val HD95: {val_hd95:.4f}")
-        wandb.log({"train_loss": train_loss, "train_dice": train_dice, "train_hd95": train_hd95, "Learning rate(s)": lrs, "val_loss": val_loss, "val_dice": val_dice, "val_hd95": val_hd95})
+        # wandb.log({"train_loss": train_loss, "train_dice": train_dice, "train_hd95": train_hd95, "Learning rate(s)": lrs, "val_loss": val_loss, "val_dice": val_dice, "val_hd95": val_hd95})
 
         # Early stopping
         if val_loss < best_val_loss:
@@ -368,37 +373,81 @@ def prep_and_forward(batch, model, loss_fn, dice, hd95, desc="train"):
         if args.use_prev_mask and desc == "train":
             if args.use_float_prompt:
                 if args.loss_fn == "agbce":
-                    images, gts, img_names, prev_masks, slice_positions, non_expert_labels, H, W = batch
-                    prev_masks = prev_masks.unsqueeze(1).to(args.device)
-                    slice_positions = slice_positions.unsqueeze(1).to(args.device)
-                    non_expert_labels = non_expert_labels.to(args.device)
+                    if args.use_video_embedding:
+                        images, gts, img_names, prev_masks, slice_positions, non_expert_labels, video_embeddings, H, W = batch
+                        prev_masks = prev_masks.unsqueeze(1).to(args.device)
+                        slice_positions = slice_positions.unsqueeze(1).to(args.device)
+                        non_expert_labels = non_expert_labels.to(args.device)
+                        video_embeddings = video_embeddings.to(args.device)
+                    else:
+                        images, gts, img_names, prev_masks, slice_positions, non_expert_labels, H, W = batch
+                        prev_masks = prev_masks.unsqueeze(1).to(args.device)
+                        slice_positions = slice_positions.unsqueeze(1).to(args.device)
+                        non_expert_labels = non_expert_labels.to(args.device)
                 else:
-                    images, gts, img_names, prev_masks, slice_positions, H, W = batch
-                    prev_masks = prev_masks.unsqueeze(1).to(args.device)
-                    slice_positions = slice_positions.unsqueeze(1).to(args.device)
+                    if args.use_video_embedding:
+                        images, gts, img_names, prev_masks, slice_positions, video_embeddings, H, W = batch
+                        prev_masks = prev_masks.unsqueeze(1).to(args.device)
+                        slice_positions = slice_positions.unsqueeze(1).to(args.device)
+                        video_embeddings = video_embeddings.to(args.device)
+                    else:
+                        images, gts, img_names, prev_masks, slice_positions, H, W = batch
+                        prev_masks = prev_masks.unsqueeze(1).to(args.device)
+                        slice_positions = slice_positions.unsqueeze(1).to(args.device)
             else:
                 if args.loss_fn == "agbce":
-                    images, gts, img_names, prev_masks, non_expert_labels, H, W = batch
-                    prev_masks = prev_masks.unsqueeze(1).to(args.device)
-                    non_expert_labels = non_expert_labels.to(args.device)
+                    if args.use_video_embedding:
+                        images, gts, img_names, prev_masks, non_expert_labels, video_embeddings, H, W = batch
+                        prev_masks = prev_masks.unsqueeze(1).to(args.device)
+                        non_expert_labels = non_expert_labels.to(args.device)
+                        video_embeddings = video_embeddings.to(args.device)
+                    else:
+                        images, gts, img_names, prev_masks, non_expert_labels, H, W = batch
+                        prev_masks = prev_masks.unsqueeze(1).to(args.device)
+                        non_expert_labels = non_expert_labels.to(args.device)
                 else:
-                    images, gts, img_names, prev_masks, H, W = batch
-                    prev_masks = prev_masks.unsqueeze(1).to(args.device)
+                    if args.use_video_embedding:
+                        images, gts, img_names, prev_masks, video_embeddings, H, W = batch
+                        prev_masks = prev_masks.unsqueeze(1).to(args.device)
+                        video_embeddings = video_embeddings.to(args.device)
+                    else:
+                        images, gts, img_names, prev_masks, H, W = batch
+                        prev_masks = prev_masks.unsqueeze(1).to(args.device)
         else:
             if args.use_float_prompt:
                 if args.loss_fn == "agbce":
-                    images, gts, img_names, slice_positions, non_expert_labels, H, W = batch
-                    slice_positions = slice_positions.unsqueeze(1).to(args.device)
-                    non_expert_labels = non_expert_labels.to(args.device)
+                    if args.use_video_embedding:
+                        images, gts, img_names, slice_positions, non_expert_labels, video_embeddings, H, W = batch
+                        slice_positions = slice_positions.unsqueeze(1).to(args.device)
+                        non_expert_labels = non_expert_labels.to(args.device)
+                        video_embeddings = video_embeddings.to(args.device)
+                    else:
+                        images, gts, img_names, slice_positions, non_expert_labels, H, W = batch
+                        slice_positions = slice_positions.unsqueeze(1).to(args.device)
+                        non_expert_labels = non_expert_labels.to(args.device)
                 else:
-                    images, gts, img_names, slice_positions, H, W = batch
-                    slice_positions = slice_positions.unsqueeze(1).to(args.device)
+                    if args.use_video_embedding:
+                        images, gts, img_names, slice_positions, video_embeddings, H, W = batch
+                        slice_positions = slice_positions.unsqueeze(1).to(args.device)
+                        video_embeddings = video_embeddings.to(args.device)
+                    else:
+                        images, gts, img_names, slice_positions, H, W = batch
+                        slice_positions = slice_positions.unsqueeze(1).to(args.device)
             else:
                 if args.loss_fn == "agbce":
-                    images, gts, img_names, non_expert_labels, H, W = batch
-                    non_expert_labels = non_expert_labels.to(args.device)
+                    if args.use_video_embedding:
+                        images, gts, img_names, non_expert_labels, video_embeddings, H, W = batch
+                        non_expert_labels = non_expert_labels.to(args.device)
+                        video_embeddings = video_embeddings.to(args.device)
+                    else:
+                        images, gts, img_names, non_expert_labels, H, W = batch
+                        non_expert_labels = non_expert_labels.to(args.device)
                 else:
-                    images, gts, img_names, H, W = batch
+                    if args.use_video_embedding:
+                        images, gts, img_names, video_embeddings, H, W = batch
+                        video_embeddings = video_embeddings.to(args.device)
+                    else:
+                        images, gts, img_names, H, W = batch
         
         images = images.to(args.device)
         gts = gts.to(args.device)
@@ -503,6 +552,15 @@ def run_train_epoch(loader, model, optimizer, loss_fn, desc="train"):
             avg_dice.append(dice)
             avg_hd95.append(hd95)
 
+            # wandb log metrics
+            if train_iter % 1 == 0:
+                metrics = {
+                    f"{desc}_loss": loss.item(),
+                    f"{desc}_dice": dice,
+                    f"{desc}_hd95": hd95,
+                }
+                wandb.log(metrics)
+
         epoch_loss = mean(losses)
 
         # compute and log metrics
@@ -546,6 +604,15 @@ def run_eval_epoch(epoch, loader, model, loss_fn, desc="eval"):
         losses.append(loss.item())
         avg_dice.append(dice)
         avg_hd95.append(hd95)
+
+        # wandb log metrics
+        if val_iter % 1 == 0:
+            metrics = {
+                f"{desc}_loss": loss.item(),
+                f"{desc}_dice": dice,
+                f"{desc}_hd95": hd95,
+            }
+            wandb.log(metrics)
 
     epoch_loss = mean(losses)
     return epoch_loss, mean(avg_dice),  mean(avg_hd95)

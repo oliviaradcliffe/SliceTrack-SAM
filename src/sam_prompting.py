@@ -64,11 +64,22 @@ class SliceTrackSam(nn.Module):
                 nn.ReLU(),
                 nn.Linear(128, prompt_embedding_dim),
             )
+        
+        # =============================
+        # Video embedding projection (maps 512-dim → prompt vector dim.)
+        # =============================
+        # self.use_video_prompt = True
+        # self.video_embedding_dim = 512   # from dataset ResNet18
+        # self.video_prompt_proj = nn.Linear(
+        #     self.video_embedding_dim, 
+        #     prompt_embedding_dim
+        # )
 
     def forward(
         self,
         image=None,
         prev_mask=None,
+        # video_embedding=None,
         return_prompt_embeddings=False,
         **prompts,
     ):
@@ -103,6 +114,30 @@ class SliceTrackSam(nn.Module):
 
         if sparse_embedding.size(0) == 1 and B > 1:
             sparse_embedding = sparse_embedding.expand(B, -1, -1)
+
+        # --------------------------------------------------------
+        # # VIDEO PROMPT: Add embedding from dataset if provided
+        # # --------------------------------------------------------
+        # if self.use_video_prompt and video_embedding is not None:
+
+        #     # Ensure tensor and correct shape (B, D)
+        #     if not torch.is_tensor(video_embedding):
+        #         video_embedding = torch.tensor(video_embedding, dtype=torch.float32, device=image.device)
+
+        #     video_embedding = video_embedding.to(image.device)
+
+        #     # If it comes as (D,) instead of (B, D)
+        #     if video_embedding.ndim == 1:
+        #         video_embedding = video_embedding.unsqueeze(0)
+
+        #     # Project to SAM prompt dimension
+        #     v = self.video_prompt_proj(video_embedding)    # (B, prompt_dim)
+
+        #     # Convert to sparse prompt shape: (B, 1, prompt_dim)
+        #     v = v[:, None, :]
+
+        #     # Append to sparse embedding
+        #     sparse_embedding = torch.cat([sparse_embedding, v], dim=1)
 
         for prompt_name, prompt_value in prompts.items():
             if prompt_name in self.floating_point_prompts:

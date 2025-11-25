@@ -78,8 +78,9 @@ class Hausdorff:
 # Annotation-guided binary cross entropy loss (AG-BCE) - from MICROSEGNET paper
 def attention_BCE_loss(h_W, y_true, y_pred, y_std, ks = 5):
 
-    print( "Using Attention BCE Loss")
-    
+    # print( "Using Attention BCE Loss")
+    # print(f"Shape of y_true: {y_true.shape}, Shape of y_pred: {y_pred.shape}, Shape of y_std: {y_std.shape}")
+    # print(f"Type of y_true: {type(y_true)}, Type of y_pred: {type(y_pred)}, Type of y_std: {type(y_std)}")    
     number_of_pixels = y_true.shape[0]*y_true.shape[1]*y_true.shape[2]
 
     y_true_np = y_true.cpu().detach().numpy()
