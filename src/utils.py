@@ -73,4 +73,39 @@ class Hausdorff:
         if not self.hd95_scores:
             return 0
         return Average(self.hd95_scores)
+
+
+# Annotation-guided binary cross entropy loss (AG-BCE) - from MICROSEGNET paper
+def attention_BCE_loss(h_W, y_true, y_pred, y_std, ks = 5):
+
+    print( "Using Attention BCE Loss")
     
+    number_of_pixels = y_true.shape[0]*y_true.shape[1]*y_true.shape[2]
+
+    y_true_np = y_true.cpu().detach().numpy()
+    y_std_np = y_std.cpu().detach().numpy()
+
+    hard = cv2.bitwise_xor(y_true_np, y_std_np)
+    hard = hard.astype(np.uint8)
+    
+    # Apply dilation operation to hard regions
+    kernel_size = ks
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (kernel_size, kernel_size))
+    for i in range(hard.shape[0]):
+        hard[i] = cv2.dilate(hard[i], kernel)
+    hard = hard.astype(np.float32)
+
+    easy = abs(hard-1)
+    hard = torch.tensor(hard).cuda()
+    easy = torch.tensor(easy).cuda()
+
+    epsilon = 0.000001
+    beta = 0.5
+
+    loss = -beta*torch.mul(y_true,torch.log(y_pred + epsilon)) - (1.0 - beta)*torch.mul(1.0-y_true,torch.log(1.0 - y_pred + epsilon))
+    hard_loss = torch.sum(torch.mul(loss,hard))
+    easy_loss = torch.sum(torch.mul(loss,easy))
+
+    LOSS = ((1/(1+h_W))*easy_loss + (h_W/(1+h_W))*hard_loss)/(number_of_pixels)
+
+    return LOSS

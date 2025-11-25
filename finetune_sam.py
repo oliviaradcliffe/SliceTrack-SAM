@@ -13,7 +13,7 @@ import torch.nn.functional as F
 from src.sam_prompting import SliceTrackSam
 from src.dataset import MicroUSDataset
 from src.transforms import Transform
-from src.utils import DiceMetric, Hausdorff 
+from src.utils import DiceMetric, Hausdorff, attention_BCE_loss 
 from torch.optim.lr_scheduler import LambdaLR, StepLR, ReduceLROnPlateau, CosineAnnealingLR, CosineAnnealingWarmRestarts
 
 import wandb
@@ -185,6 +185,9 @@ def main():
         loss_fn = torch.nn.BCEWithLogitsLoss()
     elif args.loss_fn == "mse":
         loss_fn = torch.nn.MSELoss()
+    elif args.loss_fn == "agbce":
+        loss_fn = "agbce"  # custom loss handled in prep_and_forward
+
 
     print("arguments: ")
     print("\t root: ", args.root)
@@ -256,8 +259,12 @@ def main():
     # print(sam_model)
 
     # LOAD DATASET -------------------------------------
-    tr_dataset = MicroUSDataset(args.root, split="train", useFloatPrompt=args.use_float_prompt, usePrevMask=args.use_prev_mask, useMultiImage=args.useMultiImage, transform=Transform(output_size=args.img_size, mask_size=args.mask_size, augment=args.augment, h_flip_prob=args.h_flip_prob, crop_pad=args.crop_pad))
-    val_dataset = MicroUSDataset(args.root, split="val", useFloatPrompt=args.use_float_prompt, useMultiImage=args.useMultiImage, transform=Transform(output_size=args.img_size, mask_size=args.mask_size, augment=False, h_flip_prob=0))
+    if args.loss_fn == "agbce":
+        tr_dataset = MicroUSDataset(args.root, split="train", useFloatPrompt=args.use_float_prompt, usePrevMask=args.use_prev_mask, useMultiImage=args.useMultiImage, useAGBCE=True, transform=Transform(output_size=args.img_size, mask_size=args.mask_size, augment=args.augment, h_flip_prob=args.h_flip_prob, crop_pad=args.crop_pad))
+        val_dataset = MicroUSDataset(args.root, split="val", useFloatPrompt=args.use_float_prompt, useMultiImage=args.useMultiImage, useAGBCE=True, transform=Transform(output_size=args.img_size, mask_size=args.mask_size, augment=False, h_flip_prob=0))
+    else:
+        tr_dataset = MicroUSDataset(args.root, split="train", useFloatPrompt=args.use_float_prompt, usePrevMask=args.use_prev_mask, useMultiImage=args.useMultiImage, transform=Transform(output_size=args.img_size, mask_size=args.mask_size, augment=args.augment, h_flip_prob=args.h_flip_prob, crop_pad=args.crop_pad))
+        val_dataset = MicroUSDataset(args.root, split="val", useFloatPrompt=args.use_float_prompt, useMultiImage=args.useMultiImage, transform=Transform(output_size=args.img_size, mask_size=args.mask_size, augment=False, h_flip_prob=0))
 
     print("tr_dataset (num images): ", len(tr_dataset))
     print("val_dataset (num images): ", len(val_dataset))
@@ -360,18 +367,38 @@ def prep_and_forward(batch, model, loss_fn, dice, hd95, desc="train"):
         # extract relevant data and move to gpu
         if args.use_prev_mask and desc == "train":
             if args.use_float_prompt:
-                images, gts, img_names, prev_masks, slice_positions, H, W = batch
-                prev_masks = prev_masks.unsqueeze(1).to(args.device)
-                slice_positions = slice_positions.unsqueeze(1).to(args.device)
+                if args.loss_fn == "agbce":
+                    images, gts, img_names, prev_masks, slice_positions, non_expert_labels, H, W = batch
+                    prev_masks = prev_masks.unsqueeze(1).to(args.device)
+                    slice_positions = slice_positions.unsqueeze(1).to(args.device)
+                    non_expert_labels = non_expert_labels.to(args.device)
+                else:
+                    images, gts, img_names, prev_masks, slice_positions, H, W = batch
+                    prev_masks = prev_masks.unsqueeze(1).to(args.device)
+                    slice_positions = slice_positions.unsqueeze(1).to(args.device)
             else:
-                images, gts, img_names, prev_masks, H, W = batch
-                prev_masks = prev_masks.unsqueeze(1).to(args.device)
+                if args.loss_fn == "agbce":
+                    images, gts, img_names, prev_masks, non_expert_labels, H, W = batch
+                    prev_masks = prev_masks.unsqueeze(1).to(args.device)
+                    non_expert_labels = non_expert_labels.to(args.device)
+                else:
+                    images, gts, img_names, prev_masks, H, W = batch
+                    prev_masks = prev_masks.unsqueeze(1).to(args.device)
         else:
             if args.use_float_prompt:
-                images, gts, img_names, slice_positions, H, W = batch
-                slice_positions = slice_positions.unsqueeze(1).to(args.device)
+                if args.loss_fn == "agbce":
+                    images, gts, img_names, slice_positions, non_expert_labels, H, W = batch
+                    slice_positions = slice_positions.unsqueeze(1).to(args.device)
+                    non_expert_labels = non_expert_labels.to(args.device)
+                else:
+                    images, gts, img_names, slice_positions, H, W = batch
+                    slice_positions = slice_positions.unsqueeze(1).to(args.device)
             else:
-                images, gts, img_names, H, W = batch
+                if args.loss_fn == "agbce":
+                    images, gts, img_names, non_expert_labels, H, W = batch
+                    non_expert_labels = non_expert_labels.to(args.device)
+                else:
+                    images, gts, img_names, H, W = batch
         
         images = images.to(args.device)
         gts = gts.to(args.device)
@@ -427,10 +454,16 @@ def prep_and_forward(batch, model, loss_fn, dice, hd95, desc="train"):
         gt_binary = torch.where(gts >= 0.5, 1, 0)
         hd95.update(pred_binary, gt_binary)
 
-        # loss calculation
-        loss = loss_fn(
-            pred.squeeze(1), gts,
-        )
+        # agbce loss
+        if args.loss_fn == "agbce":
+            hard_weight=4
+            loss = attention_BCE_loss(hard_weight, gts, pred.squeeze(1), non_expert_labels, ks=5)
+  
+        else:
+            # loss calculation
+            loss = loss_fn(
+                pred.squeeze(1), gts,
+            )
 
         return (
             loss,

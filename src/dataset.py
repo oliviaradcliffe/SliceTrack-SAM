@@ -6,7 +6,7 @@ from PIL import Image
 import numpy as np
 
 class MicroUSDataset(Dataset):
-    def __init__(self, root, split="train", img_folder="imgs", useFloatPrompt=False, usePrevMask=False, useMultiImage=False, transform=None):
+    def __init__(self, root, split="train", img_folder="imgs", useFloatPrompt=False, usePrevMask=False, useMultiImage=False, useAGBCE=False, transform=None):
         """
         Initialize the dataset.
 
@@ -27,6 +27,8 @@ class MicroUSDataset(Dataset):
         self.img_dir = os.path.join(self.root, f"{split}_png", self.img_folder)
         self.mask_dir = os.path.join(self.root, f"{split}_png", "gts")
         self.img_filenames = sorted(os.listdir(self.img_dir))
+        self.agbce = useAGBCE
+        self.non_expert_list = os.path.join(self.root, f"{split}_png", "sts")
 
     def __len__(self):
         """
@@ -91,17 +93,33 @@ class MicroUSDataset(Dataset):
                 slice_position = slice_num/(total_slices+1)
                 slice_position =  torch.as_tensor(slice_position).to(dtype=torch.float32)
 
+            if self.agbce:
+                non_expert_path = os.path.join(self.non_expert_list, img_name.replace("img", "st"))
+                non_expert_mask = Image.open(non_expert_path)
+                non_expert_mask = np.array(non_expert_mask)
+                non_expert_mask = np.where(non_expert_mask == 255, 1, 0)
+
             if self.transform:
                 if self.usePrevMask:
-                    image, mask, prev_mask = self.transform(image, mask, prev_mask)
+                    if self.agbce:
+                        image, mask, prev_mask, non_expert_mask = self.transform(image, mask, prev_mask, non_expert_mask)
+                    else:
+                        image, mask, prev_mask = self.transform(image, mask, prev_mask)
                 else:
-                    image, mask = self.transform(image, mask)
+                    if self.agbce:
+                        image, mask, non_expert_mask = self.transform(image, mask, non_expert_mask)
+                    else:
+                        image, mask = self.transform(image, mask)
 
             if self.usePrevMask:
                 if self.useFloatPrompt:
+                    if self.agbce:
+                        return image, mask, img_name, prev_mask, slice_position, non_expert_mask, H, W
                     return image, mask, img_name, prev_mask, slice_position, H, W
                 return image, mask, img_name, prev_mask, H, W
             else:
                 if self.useFloatPrompt:
+                    if self.agbce:
+                        return image, mask, img_name, slice_position, non_expert_mask, H, W
                     return image, mask, img_name, slice_position, H, W
                 return image, mask, img_name, H, W

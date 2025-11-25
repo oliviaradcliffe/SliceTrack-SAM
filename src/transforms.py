@@ -12,7 +12,7 @@ class Transform():
         self.augment = augment
         self.h_flip_prob = h_flip_prob
 
-    def __call__(self, image, mask, prevMask=None):
+    def __call__(self, image, mask, prevMask=None, non_expert_mask=None):
         transform = T.Resize((self.output_size, self.output_size))
         input_image_torch = torch.as_tensor(image).permute(2, 0, 1)
         input_image_torch = transform(input_image_torch)
@@ -25,6 +25,10 @@ class Transform():
         if prevMask is not None:
             transformed_prevMask = Mask(prevMask)
             transformed_prevMask = T.Resize((self.output_size, self.output_size))(transformed_prevMask).to(dtype=torch.float32)
+
+        if non_expert_mask is not None:
+            transformed_non_expert_mask = Mask(non_expert_mask)
+            transformed_non_expert_mask = T.Resize((self.output_size, self.output_size))(transformed_non_expert_mask).to(dtype=torch.float32)
 
         if self.crop_pad:
             # crop top and bottom
@@ -39,12 +43,20 @@ class Transform():
 
         if self.augment:
             if prevMask is not None:
-                transformed_image, transformed_mask, transformed_prevMask = T.RandomHorizontalFlip(p=self.h_flip_prob)(transformed_image, transformed_mask, transformed_prevMask)
-                transformed_image, transformed_mask, transformed_prevMask = T.RandomResizedCrop(self.output_size, scale=(0.7,1))(transformed_image, transformed_mask, transformed_prevMask)
+                if non_expert_mask is not None:
+                    transformed_image, transformed_mask, transformed_prevMask, transformed_non_expert_mask = T.RandomHorizontalFlip(p=self.h_flip_prob)(transformed_image, transformed_mask, transformed_prevMask, transformed_non_expert_mask)
+                    transformed_image, transformed_mask, transformed_prevMask, transformed_non_expert_mask = T.RandomResizedCrop(self.output_size, scale=(0.7,1))(transformed_image, transformed_mask, transformed_prevMask, transformed_non_expert_mask)
+                else:
+                    transformed_image, transformed_mask, transformed_prevMask = T.RandomHorizontalFlip(p=self.h_flip_prob)(transformed_image, transformed_mask, transformed_prevMask)
+                    transformed_image, transformed_mask, transformed_prevMask = T.RandomResizedCrop(self.output_size, scale=(0.7,1))(transformed_image, transformed_mask, transformed_prevMask)
 
             else:
-                transformed_image, transformed_mask = T.RandomHorizontalFlip(p=self.h_flip_prob)(transformed_image, transformed_mask)
-                transformed_image, transformed_mask = T.RandomResizedCrop(self.output_size, scale=(0.8,1))(transformed_image, transformed_mask)
+                if non_expert_mask is not None:
+                    transformed_image, transformed_mask, transformed_non_expert_mask = T.RandomHorizontalFlip(p=self.h_flip_prob)(transformed_image, transformed_mask, transformed_non_expert_mask)
+                    transformed_image, transformed_mask, transformed_non_expert_mask = T.RandomResizedCrop(self.output_size, scale=(0.8,1))(transformed_image, transformed_mask, transformed_non_expert_mask)
+                else:
+                    transformed_image, transformed_mask = T.RandomHorizontalFlip(p=self.h_flip_prob)(transformed_image, transformed_mask)
+                    transformed_image, transformed_mask = T.RandomResizedCrop(self.output_size, scale=(0.8,1))(transformed_image, transformed_mask)
 
             gamma = self._sample_gamma()
             transformed_image = transformed_image**gamma
@@ -52,12 +64,21 @@ class Transform():
         # resize mask to original size
         transformed_mask = T.Resize((image.shape[0], image.shape[1]))(transformed_mask)
 
+        # TODO: check size of prev mask
+
+        if non_expert_mask is not None:
+            transformed_non_expert_mask = T.Resize((image.shape[0], image.shape[1]))(transformed_non_expert_mask)
+
         # normalize
         transformed_image = (transformed_image - transformed_image.min()) / (transformed_image.max() - transformed_image.min())
            
         if prevMask is not None:
+            if non_expert_mask is not None:
+                return transformed_image, transformed_mask, transformed_prevMask, transformed_non_expert_mask
             return transformed_image, transformed_mask, transformed_prevMask
         else:
+            if non_expert_mask is not None:
+                return transformed_image, transformed_mask, transformed_non_expert_mask
             return transformed_image, transformed_mask
 
     def _sample_gamma(self):
