@@ -1,0 +1,11 @@
+matplotlib==3.9.1
+MedPy==0.5.1
+numpy==1.26.4
+opencv_python==4.9.0.80
+Pillow==10.4.0
+segment_anything==1.0
+scikit-image==0.23.2
+torch==2.3.0
+torchvision==0.18.0
+tqdm==4.66.4
+wandb==0.17.4
